@@ -3,7 +3,6 @@
         Options -MultiViews -Indexes
     </IfModule>
 
-    RewriteRule ^build/(.*)$ /build/$1 [L]
     RewriteEngine On
 
     # Handle Authorization Header
