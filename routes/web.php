@@ -8,11 +8,17 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\LandingController;
-use App\Http\Controllers\LiveChatController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\QueueDashboardController;
+use App\Http\Controllers\SupportRequestController;
+use App\Http\Controllers\LiveChatController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
+
+// Broadcast routes for authentication
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 
@@ -21,8 +27,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return view('dashboard');
     })->name('dashboard');
 
+    // Chat Routes
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/chat/create', [ChatController::class, 'create'])->name('chat.create');
+        Route::post('/chat', [ChatController::class, 'store'])->name('chat.store');
+        Route::get('/chat/{chat}', [ChatController::class, 'show'])->name('chat.show');
+        Route::post('/chat/{chat}/messages', [ChatController::class, 'sendMessage'])->name('chat.message.store');
+    });
+
+    // Live Chat Routes
+    Route::prefix('livechat')->group(function () {
+        Route::get('/', [LiveChatController::class, 'index'])->name('livechat.index');
+        Route::get('/create', [LiveChatController::class, 'create'])->name('livechat.create');
+        Route::post('/', [LiveChatController::class, 'store'])->name('livechat.store');
+        Route::get('/{chat}', [LiveChatController::class, 'show'])->name('livechat.show');
+        Route::post('/{chat}/message', [LiveChatController::class, 'sendMessage'])->name('livechat.message');
+        Route::post('/{chat}/end', [LiveChatController::class, 'end'])->name('livechat.end');
+    });
+
     // Admin Routes
-    // Route::middleware(['role:admin'])->group(function () {
+    // Route::middleware(['auth', 'check.role:admin'])->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');
         Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
@@ -40,12 +64,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         Route::get('/analytics/create', [AnalyticsController::class, 'create'])->name('analytics.create');
         Route::post('/analytics', [AnalyticsController::class, 'store'])->name('analytics.store');
+        Route::get('/analytics/{analytics}/edit', [AnalyticsController::class, 'edit'])->name('analytics.edit');
         Route::put('/analytics/{analytics}', [AnalyticsController::class, 'update'])->name('analytics.update');
         Route::delete('/analytics/{analytics}', [AnalyticsController::class, 'destroy'])->name('analytics.destroy');
     // });
 
     // Agent Routes
-    // Route::middleware(['role:admin|supervisor|agent'])->group(function () {
+    // Route::middleware(['auth', 'check.role:admin,supervisor,agent'])->group(function () {
         // Contacts Routes
         Route::resource('contacts', ContactController::class);
         Route::get('/contacts/search', [ContactController::class, 'search'])->name('contacts.search');
@@ -59,25 +84,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Tickets Routes
         Route::resource('tickets', TicketController::class);
         Route::get('/tickets/{ticket}/delete', [TicketController::class, 'destroy'])->name('tickets.delete');
+        Route::post('/tickets/{ticket}/assign', [TicketController::class, 'assign'])->name('tickets.assign');
+        Route::post('/tickets/{ticket}/close', [TicketController::class, 'close'])->name('tickets.close');
 
         // Tag routes
         Route::resource('tags', TagController::class)->except(['create', 'edit', 'show']);
 
         // Custom field routes
         Route::resource('custom-fields', CustomFieldController::class)->except(['create', 'edit', 'show']);
+
+        Route::resource('support-requests', SupportRequestController::class);
     // });
 
     // Profile Routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    // Chat routes
-    Route::get('/chat', [LiveChatController::class, 'index'])->name('chat.index');
-    Route::post('/chat', [LiveChatController::class, 'store'])->name('chat.store');
-    Route::get('/chat/{chat}', [LiveChatController::class, 'show'])->name('chat.show');
-    Route::post('/chat/{chat}/message', [LiveChatController::class, 'sendMessage'])->name('chat.message');
-    Route::post('/chat/{chat}/end', [LiveChatController::class, 'end'])->name('chat.end');
 
     // Queue Dashboard Routes
     Route::get('/queue-dashboard', [QueueDashboardController::class, 'index'])->name('queue.dashboard');

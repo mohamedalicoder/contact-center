@@ -23,6 +23,12 @@ class TicketController extends Controller
     {
         $query = Ticket::with(['contact', 'assignedTo', 'user']);
 
+        // Filter tickets based on user role
+        $user = auth()->user();
+        if ($user->role === 'agent') {
+            $query->where('assigned_to', $user->id);
+        }
+
         // Apply filters
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -64,20 +70,13 @@ class TicketController extends Controller
             'subject' => 'required|string|max:255',
             'description' => 'required|string',
             'priority' => 'required|in:low,medium,high',
-            'status' => 'required|in:open,in_progress,closed',
-            'assigned_to' => 'nullable|exists:users,id',
-            'due_date' => 'nullable|date',
-            'resolution' => 'nullable|string'
+            'status' => 'required|in:open,in_progress,closed'
         ]);
 
-        if (!Auth::check()) {
-            return redirect()->route('login')
-                ->with('error', 'You must be logged in to create a ticket.');
-        }
+        // Set the user_id to the currently authenticated user
+        $validated['user_id'] = auth()->id();
 
-        $validated['user_id'] = Auth::id();
-
-        Ticket::create($validated);
+        $ticket = Ticket::create($validated);
 
         return redirect()->route('tickets.index')
             ->with('success', 'Ticket created successfully.');
@@ -138,5 +137,42 @@ class TicketController extends Controller
 
         return redirect()->route('tickets.index')
             ->with('success', 'Ticket deleted successfully.');
+    }
+
+    /**
+     * Assign a ticket to an agent.
+     */
+    public function assign(Request $request, Ticket $ticket)
+    {
+        $validated = $request->validate([
+            'agent_id' => 'required|exists:users,id'
+        ]);
+
+        $ticket->update([
+            'assigned_to' => $validated['agent_id'],
+            'status' => 'in_progress'
+        ]);
+
+        return redirect()->route('tickets.show', $ticket)
+            ->with('success', 'Ticket assigned successfully.');
+    }
+
+    /**
+     * Close a ticket.
+     */
+    public function close(Request $request, Ticket $ticket)
+    {
+        $validated = $request->validate([
+            'resolution' => 'required|string'
+        ]);
+
+        $ticket->update([
+            'status' => 'closed',
+            'resolution' => $validated['resolution'],
+            'resolved_at' => now()
+        ]);
+
+        return redirect()->route('tickets.show', $ticket)
+            ->with('success', 'Ticket closed successfully.');
     }
 }

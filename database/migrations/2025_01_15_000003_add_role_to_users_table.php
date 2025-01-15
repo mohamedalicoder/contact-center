@@ -12,9 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_online')->default(false);
-            $table->boolean('is_available')->default(true);
-            $table->timestamp('last_activity_at')->nullable();
+            if (!Schema::hasColumn('users', 'role')) {
+                $table->enum('role', ['user', 'admin', 'agent'])->default('user')->after('password');
+            }
+            if (!Schema::hasColumn('users', 'deleted_at')) {
+                $table->softDeletes();
+            }
         });
     }
 
@@ -24,7 +27,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['is_online', 'is_available', 'last_activity_at']);
+            $table->dropColumn(['role', 'deleted_at']);
         });
     }
 };

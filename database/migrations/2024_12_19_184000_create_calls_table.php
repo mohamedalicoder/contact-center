@@ -15,12 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('contact_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->enum('type', ['inbound', 'outbound']);
-            $table->integer('duration');
-            $table->enum('status', ['completed', 'missed', 'voicemail']);
+            $table->string('type');
+            $table->integer('duration')->nullable();
+            $table->string('status');
             $table->text('notes')->nullable();
-            $table->timestamp('started_at');
-            $table->timestamp('ended_at');
+            $table->dateTime('started_at');
+            $table->dateTime('ended_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

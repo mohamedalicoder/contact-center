@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::create('chats', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('contact_id')->constrained()->onDelete('cascade');
-            $table->foreignId('agent_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->enum('status', ['waiting', 'active', 'closed']);
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('admin_id')->constrained('users')->onDelete('cascade');
+            $table->enum('status', ['active', 'closed'])->default('active');
             $table->timestamp('started_at')->nullable();
             $table->timestamp('ended_at')->nullable();
             $table->timestamps();

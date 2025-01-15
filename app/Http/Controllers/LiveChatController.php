@@ -9,14 +9,15 @@ use App\Models\Chat;
 use App\Models\Contact;
 use App\Models\User;
 use App\Events\NewChatMessage;
+use App\Models\Message;
 
 class LiveChatController extends Controller
 {
     public function index()
     {
         $activeChats = Chat::where('status', 'active')
-            ->where('agent_id', auth()->id())
-            ->with(['contact', 'messages'])
+            ->where('admin_id', auth()->id())
+            ->with(['user', 'messages'])
             ->get();
 
         return view('chat.index', compact('activeChats'));
@@ -25,47 +26,64 @@ class LiveChatController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'contact_id' => 'required|exists:contacts,id',
+            'user_id' => 'required|exists:users,id',
             'message' => 'required|string'
         ]);
 
         $chat = Chat::create([
-            'contact_id' => $validated['contact_id'],
-            'agent_id' => auth()->id(),
-            'status' => 'active'
+            'user_id' => $validated['user_id'],
+            'admin_id' => auth()->id(),
+            'status' => 'active',
+            'started_at' => now(),
         ]);
 
-        $message = $chat->messages()->create([
+        $message = Message::create([
+            'chat_id' => $chat->id,
+            'user_id' => auth()->id(),
             'content' => $validated['message'],
-            'sender_type' => 'agent',
-            'sender_id' => auth()->id()
         ]);
 
         broadcast(new MessageSent($message))->toOthers();
 
-        return response()->json($chat->load('messages'));
+        return response()->json($chat->load(['messages', 'user', 'admin']));
     }
 
     public function show(Chat $chat)
     {
+        // Ensure the user has access to this chat
+        if ($chat->user_id !== auth()->id() && $chat->admin_id !== auth()->id()) {
+            abort(403);
+        }
+
         return view('chat.show', compact('chat'));
     }
 
     public function sendMessage(Request $request, Chat $chat)
     {
+        // Ensure the user has access to this chat
+        if ($chat->user_id !== auth()->id() && $chat->admin_id !== auth()->id()) {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'message' => 'required|string'
         ]);
 
-        $message = $chat->messages()->create([
+        $message = Message::create([
+            'chat_id' => $chat->id,
+            'user_id' => auth()->id(),
             'content' => $validated['message'],
-            'sender_type' => 'agent',
-            'sender_id' => auth()->id()
         ]);
+
+        // Load the relationships needed for the broadcast
+        $message->load('user');
 
         broadcast(new MessageSent($message))->toOthers();
 
-        return response()->json($message);
+        return response()->json([
+            'status' => 'success',
+            'message' => $message
+        ]);
     }
 
     public function end(Chat $chat)

@@ -9,10 +9,10 @@ use Illuminate\Support\Facades\Auth;
 
 class CallController extends Controller
 {
-//     public function __construct()
-// {
-//     $this->middleware(['auth', 'role:admin,supervisor,agent']);
-// }
+    public function __construct()
+    {
+        $this->middleware(['auth']);
+    }
     public function index(Request $request)
     {
         $query = Call::with(['contact', 'user']);

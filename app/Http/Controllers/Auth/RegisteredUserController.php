@@ -34,7 +34,7 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'string', 'in:admin,supervisor,agent'],
+            'role' => ['required', 'string', 'in:admin,supervisor,agent,user'],
         ]);
 
         $user = User::create([
@@ -44,13 +44,16 @@ class RegisteredUserController extends Controller
             'role' => $request->role,
         ]);
 
-        // Assign role using Spatie permissions
-        $user->assignRole($request->role);
+        // Get or create the role and assign it to the user
+        $role = Role::where('name', $request->role)->first();
+        if ($role) {
+            $user->syncRoles([$role]);
+        }
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect('/dashboard');
     }
 }

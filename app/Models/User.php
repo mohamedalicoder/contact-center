@@ -12,8 +12,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -49,7 +48,10 @@ class User extends Authenticatable
 
     public function hasRole($role)
     {
-        return in_array($this->role, is_array($role) ? $role : [$role]);
+        if (is_array($role)) {
+            return in_array($this->role, $role);
+        }
+        return $this->role === $role;
     }
 
     public static function getRoles()
@@ -81,11 +83,25 @@ class User extends Authenticatable
         return $this->hasMany(QueueItem::class, 'agent_id');
     }
 
-       // Define the relationship with Chat
-       public function chats()
-       {
-           return $this->hasMany(Chat::class);
-       }
+    /**
+     * Get chats where user is the customer
+     */
+    public function chats()
+    {
+        return $this->hasMany(Chat::class, 'user_id');
+    }
+
+    /**
+     * Get chats where user is the admin/agent
+     */
+    public function adminChats()
+    {
+        return $this->hasMany(Chat::class, 'admin_id');
+    }
+
+    /**
+     * Check if the user is an admin.
+     */
     public function isAdmin()
     {
         return $this->hasRole('admin');

@@ -11,8 +11,8 @@ class Chat extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'contact_id',
-        'agent_id',
+        'user_id',
+        'admin_id',
         'status',
         'started_at',
         'ended_at'
@@ -20,27 +20,26 @@ class Chat extends Model
 
     protected $casts = [
         'started_at' => 'datetime',
-        'ended_at' => 'datetime'
+        'ended_at' => 'datetime',
     ];
-
-    public function contact()
-    {
-        return $this->belongsTo(Contact::class);
-    }
-
-    public function agent()
-    {
-        return $this->belongsTo(User::class, 'agent_id');
-    }
 
     public function messages()
     {
-        return $this->hasMany(ChatMessage::class);
+        return $this->hasMany(Message::class)->orderBy('created_at', 'asc');
     }
- // Define the inverse relationship (i.e., each chat belongs to a user)
- public function user()
- {
-     return $this->belongsTo(User::class);
- }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function admin()
+    {
+        return $this->belongsTo(User::class, 'admin_id');
+    }
+
+    public function lastMessage()
+    {
+        return $this->hasOne(Message::class)->latest();
+    }
 }

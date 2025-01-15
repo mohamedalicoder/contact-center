@@ -1,8 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-xl font-semibold leading-tight text-gray-800">
-            {{ __('Live Chat') }}
-        </h2>
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-semibold leading-tight text-gray-800">
+                {{ __('Live Chat') }}
+            </h2>
+            <button onclick="window.location.href='{{ route('chat.create') }}'" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                New Chat
+            </button>
+        </div>
     </x-slot>
 
     <div class="py-12">
@@ -14,21 +19,22 @@
                         <div class="col-span-4 border-r">
                             <div class="space-y-4">
                                 @forelse($activeChats as $chat)
-                                    <div class="p-4 rounded border cursor-pointer hover:bg-gray-50"
+                                    <div class="p-4 rounded border cursor-pointer hover:bg-gray-50 {{ request()->route('chat')?->id === $chat->id ? 'bg-blue-50' : '' }}"
                                          onclick="window.location.href='{{ route('chat.show', $chat) }}'">
                                         <div class="flex justify-between items-center">
-                                            <h3 class="font-semibold">{{ $chat->contact->name }}</h3>
-                                            <span class="text-sm text-gray-500">
-                                                {{ $chat->messages->last()?->created_at->diffForHumans() }}
-                                            </span>
+                                            <div>
+                                                <h3 class="font-medium">Chat with {{ $chat->admin->name }}</h3>
+                                                <p class="text-sm text-gray-500">{{ $chat->messages->last()?->content ?? 'No messages yet' }}</p>
+                                            </div>
+                                            <div class="text-xs text-gray-400">
+                                                {{ $chat->updated_at->diffForHumans() }}
+                                            </div>
                                         </div>
-                                        <p class="text-sm text-gray-600 truncate">
-                                            {{ $chat->messages->last()?->content ?? 'No messages' }}
-                                        </p>
                                     </div>
                                 @empty
-                                    <div class="py-4 text-center text-gray-500">
-                                        No active chats
+                                    <div class="text-center text-gray-500 py-4">
+                                        <p>No active chats</p>
+                                        <p class="text-sm mt-2">Start a new chat by clicking the "New Chat" button above</p>
                                     </div>
                                 @endforelse
                             </div>
@@ -36,13 +42,13 @@
 
                         <!-- Chat Window -->
                         <div class="col-span-8">
-                            <div class="h-[600px] flex flex-col">
-                                <div class="overflow-y-auto flex-1 p-4 space-y-4" id="chat-messages">
-                                    <div class="text-center text-gray-500">
-                                        Select a chat to start messaging
-                                    </div>
+                            @if(request()->route('chat'))
+                                @include('chat.show')
+                            @else
+                                <div class="flex items-center justify-center h-full text-gray-500">
+                                    Select a chat to start messaging
                                 </div>
-                            </div>
+                            @endif
                         </div>
                     </div>
                 </div>

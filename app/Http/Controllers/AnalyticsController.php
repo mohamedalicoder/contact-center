@@ -21,6 +21,7 @@ class AnalyticsController extends Controller
      * Display a listing of the resource.
      */
     public function index()
+    
     {
         // Get date range
         $startDate = request('start_date', now()->subDays(30));

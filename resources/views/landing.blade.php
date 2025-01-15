@@ -108,5 +108,6 @@
             </div>
         </footer>
     </div>
+    <x-chat-popup />
 </body>
 </html>
