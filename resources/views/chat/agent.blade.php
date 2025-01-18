@@ -133,8 +133,12 @@
                 });
             }
             
-            // Reload the chat list
-            loadActiveChats();
+            // Add the new chat to the top of the list
+            addNewChatToList(data.chat);
+            
+            // Update the active chats count
+            const countElement = document.getElementById('active-chats-count');
+            countElement.textContent = parseInt(countElement.textContent || 0) + 1;
         });
 
         // Function to subscribe to a specific chat channel
@@ -160,10 +164,35 @@
                         appendMessage(data.message);
                     }
                     
-                    // Reload the chat list to update last message
-                    loadActiveChats();
+                    // Move this chat to the top of the list
+                    moveChatToTop(chatId);
+                    
+                    // Update the last message in the chat list
+                    const chatDiv = Array.from(document.getElementById('chat-list').children)
+                        .find(div => div.onclick.toString().includes(chatId));
+                    
+                    if (chatDiv) {
+                        const messagePreview = chatDiv.querySelector('p');
+                        const timeSpan = chatDiv.querySelector('span.text-gray-500');
+                        if (messagePreview) {
+                            messagePreview.textContent = data.message.content;
+                        }
+                        if (timeSpan) {
+                            timeSpan.textContent = new Date(data.message.created_at).toLocaleTimeString();
+                        }
+                    }
                 }
             });
+        }
+
+        // Function to move chat to top of list
+        function moveChatToTop(chatId) {
+            const chatList = document.getElementById('chat-list');
+            const chatDiv = Array.from(chatList.children).find(div => div.onclick.toString().includes(chatId));
+            
+            if (chatDiv && chatList.firstChild !== chatDiv) {
+                chatList.insertBefore(chatDiv, chatList.firstChild);
+            }
         }
 
         // Function to append a new message
@@ -204,7 +233,10 @@
                 }
 
                 const chatList = document.getElementById('chat-list');
-                chatList.innerHTML = '';
+                // Clear the chat list
+                while (chatList.firstChild) {
+                    chatList.removeChild(chatList.firstChild);
+                }
                 
                 // Update active chats count
                 document.getElementById('active-chats-count').textContent = data.chats.length;
@@ -218,7 +250,17 @@
                     return;
                 }
 
-                data.chats.forEach(chat => {
+                // Sort chats by latest message time, newest first
+                const sortedChats = [...data.chats].sort((a, b) => {
+                    const aTime = a.messages.length > 0 ? new Date(a.messages[a.messages.length - 1].created_at).getTime() : new Date(a.created_at).getTime();
+                    const bTime = b.messages.length > 0 ? new Date(b.messages[b.messages.length - 1].created_at).getTime() : new Date(b.created_at).getTime();
+                    return bTime - aTime;
+                });
+
+                // Create a document fragment for better performance
+                const fragment = document.createDocumentFragment();
+
+                sortedChats.forEach(chat => {
                     const lastMessage = chat.messages[chat.messages.length - 1] || { content: 'No messages yet' };
                     const div = document.createElement('div');
                     div.className = `flex items-center p-3 cursor-pointer rounded-lg hover:bg-gray-50 ${currentChatId === chat.id ? 'bg-orange-50' : ''}`;
@@ -228,15 +270,18 @@
                         <div class="flex-1">
                             <div class="flex justify-between items-center mb-1">
                                 <h3 class="text-sm font-medium text-gray-900">${chat.user.name}</h3>
-                                <span class="text-xs text-gray-500">${new Date(lastMessage.created_at).toLocaleTimeString()}</span>
+                                <span class="text-xs text-gray-500">${new Date(lastMessage.created_at || chat.created_at).toLocaleTimeString()}</span>
                             </div>
                             <p class="text-sm text-gray-500 truncate">${lastMessage.content}</p>
                         </div>
                         ${chat.status === 'active' ? '<span class="w-2 h-2 bg-green-400 rounded-full"></span>' : ''}
                     `;
                     
-                    chatList.appendChild(div);
+                    fragment.appendChild(div);
                 });
+
+                // Add all chats at once
+                chatList.appendChild(fragment);
             } catch (error) {
                 console.error('Error loading chats:', error);
                 const chatList = document.getElementById('chat-list');
@@ -245,6 +290,32 @@
                         Failed to load chats. Please try again.
                     </div>
                 `;
+            }
+        }
+
+        // Function to add a new chat to the list
+        function addNewChatToList(chat) {
+            const chatList = document.getElementById('chat-list');
+            const div = document.createElement('div');
+            div.className = `flex items-center p-3 cursor-pointer rounded-lg hover:bg-gray-50`;
+            div.onclick = () => loadChat(chat.id);
+            
+            div.innerHTML = `
+                <div class="flex-1">
+                    <div class="flex justify-between items-center mb-1">
+                        <h3 class="text-sm font-medium text-gray-900">${chat.user.name}</h3>
+                        <span class="text-xs text-gray-500">${new Date(chat.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    <p class="text-sm text-gray-500 truncate">${chat.messages[0]?.content || 'No messages yet'}</p>
+                </div>
+                <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+            `;
+            
+            // Insert at the beginning of the list
+            if (chatList.firstChild) {
+                chatList.insertBefore(div, chatList.firstChild);
+            } else {
+                chatList.appendChild(div);
             }
         }
 

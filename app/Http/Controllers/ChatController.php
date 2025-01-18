@@ -22,7 +22,7 @@ class ChatController extends Controller
 
     // }
 
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
 
@@ -39,10 +39,16 @@ class ChatController extends Controller
             ->when($user->isUser(), function($query) use ($user) {
                 return $query->where('user_id', $user->id);
             })
-            ->latest()
+            ->orderByDesc(function ($query) {
+                $query->select('created_at')
+                    ->from('messages')
+                    ->whereColumn('chat_id', 'chats.id')
+                    ->latest()
+                    ->limit(1);
+            })
             ->get();
 
-        if (request()->wantsJson()) {
+        if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'chats' => $chats
