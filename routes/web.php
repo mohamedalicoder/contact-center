@@ -14,6 +14,8 @@ use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\QueueDashboardController;
 use App\Http\Controllers\SupportRequestController;
 use App\Http\Controllers\LiveChatController;
+use App\Http\Controllers\ChatBotController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -22,18 +24,28 @@ Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
-
-    // Chat Routes
+// Chat Routes
+Route::prefix('chat')->name('chat.')->group(function () {
+    // Public routes
+    Route::get('/contact', [ChatController::class, 'contactForm'])->name('contact');
+    Route::post('/store', [ChatController::class, 'store'])->name('store');
+    
+    // Routes that require authentication
     Route::middleware(['auth'])->group(function () {
-        Route::get('/chat/create', [ChatController::class, 'create'])->name('chat.create');
-        Route::post('/chat', [ChatController::class, 'store'])->name('chat.store');
-        Route::get('/chat/{chat}', [ChatController::class, 'show'])->name('chat.show');
-        Route::post('/chat/{chat}/messages', [ChatController::class, 'sendMessage'])->name('chat.message.store');
+        Route::get('/', [ChatController::class, 'index'])->name('index');
+        Route::get('/agent', [ChatController::class, 'agent'])->name('agent');
+        Route::get('/{chat}', [ChatController::class, 'show'])->name('show');
+        Route::post('/{chat}/messages', [ChatController::class, 'sendMessage'])->name('messages.store');
+        Route::post('/{chat}/end', [ChatController::class, 'endChat'])->name('end');
     });
+});
+
+// Chatbot Routes
+Route::get('/chat/bot', [ChatBotController::class, 'bot'])->name('chatbot');
+Route::post('/chat/bot', [ChatBotController::class, 'chat'])->name('chatbot.chat');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Live Chat Routes
     Route::prefix('livechat')->group(function () {
@@ -45,7 +57,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{chat}/end', [LiveChatController::class, 'end'])->name('livechat.end');
     });
 
-    // Admin Routes
     // Route::middleware(['auth', 'check.role:admin'])->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');

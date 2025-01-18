@@ -9,6 +9,9 @@ use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\AdminUserSeeder;
 use Database\Seeders\TestDataSeeder;
 use Database\Seeders\TestUsersSeeder;
+use Database\Seeders\AgentSeeder;
+use Database\Seeders\ChatMessageSeeder;
+use Database\Seeders\ChatSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -29,6 +32,9 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             TestDataSeeder::class,
             TestUsersSeeder::class,
+            AgentSeeder::class,
+            ChatMessageSeeder::class,
+            ChatSeeder::class,
         ]);
     }
 }

@@ -18,12 +18,20 @@
                         <!-- Chat List -->
                         <div class="col-span-4 border-r">
                             <div class="space-y-4">
-                                @forelse($activeChats as $chat)
+                                @forelse($chats as $chat)
                                     <div class="p-4 rounded border cursor-pointer hover:bg-gray-50 {{ request()->route('chat')?->id === $chat->id ? 'bg-blue-50' : '' }}"
                                          onclick="window.location.href='{{ route('chat.show', $chat) }}'">
                                         <div class="flex justify-between items-center">
                                             <div>
-                                                <h3 class="font-medium">Chat with {{ $chat->admin->name }}</h3>
+                                                <h3 class="font-medium">
+                                                    @if(auth()->user()->isAdmin())
+                                                        Chat with {{ $chat->user->name ?? 'Unknown User' }}
+                                                    @elseif(auth()->user()->isAgent())
+                                                        Chat with {{ $chat->user->name ?? 'Unknown User' }}
+                                                    @else
+                                                        Chat with {{ $chat->agent->name ?? 'Support Agent' }}
+                                                    @endif
+                                                </h3>
                                                 <p class="text-sm text-gray-500">{{ $chat->messages->last()?->content ?? 'No messages yet' }}</p>
                                             </div>
                                             <div class="text-xs text-gray-400">

@@ -17,16 +17,15 @@
         </div>
 
         <!-- Role Selection -->
-<div class="mt-4">
-    <x-input-label for="role" :value="__('Role')" />
-    <select id="role" name="role" class="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-        <option value="">Select a role</option>
-        <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-        <option value="supervisor" {{ old('role') == 'supervisor' ? 'selected' : '' }}>Supervisor</option>
-        <option value="agent" {{ old('role') == 'agent' ? 'selected' : '' }}>Agent</option>
-    </select>
-    <x-input-error :messages="$errors->get('role')" class="mt-2" />
-</div>
+        <div class="mt-4">
+            <x-input-label for="role" :value="__('Role')" />
+            <select id="role" name="role" class="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                <option value="">Select a role</option>
+                <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>User</option>
+            </select>
+            <x-input-error :messages="$errors->get('role')" class="mt-2" />
+        </div>
+
         <!-- Password -->
         <div class="mt-4">
             <x-input-label for="password" :value="__('Password')" />

@@ -23,7 +23,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
+        'role', // admin, agent, user
+        'status', // active, inactive
     ];
 
     /**
@@ -56,7 +57,7 @@ class User extends Authenticatable
 
     public static function getRoles()
     {
-        return ['admin', 'supervisor', 'agent'];
+        return ['admin', 'agent', 'user'];
     }
 
     /**
@@ -92,11 +93,19 @@ class User extends Authenticatable
     }
 
     /**
-     * Get chats where user is the admin/agent
+     * Get chats where user is the agent
      */
-    public function adminChats()
+    public function agentChats()
     {
-        return $this->hasMany(Chat::class, 'admin_id');
+        return $this->hasMany(Chat::class, 'agent_id');
+    }
+
+    /**
+     * Get active chats where user is the agent
+     */
+    public function activeAgentChats()
+    {
+        return $this->agentChats()->where('status', 'active');
     }
 
     /**
@@ -104,6 +113,22 @@ class User extends Authenticatable
      */
     public function isAdmin()
     {
-        return $this->hasRole('admin');
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Check if the user is an agent.
+     */
+    public function isAgent()
+    {
+        return $this->role === 'agent';
+    }
+
+    /**
+     * Check if the user is a user.
+     */
+    public function isUser()
+    {
+        return $this->role === 'user';
     }
 }

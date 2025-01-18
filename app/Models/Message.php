@@ -39,4 +39,23 @@ class Message extends Model
         }
         return in_array($this->user->role, ['admin', 'agent']) ? 'agent' : 'user';
     }
+
+    /**
+     * Get whether the current user is the sender of this message
+     */
+    public function getIsSenderAttribute()
+    {
+        if (auth()->check()) {
+            return $this->user_id === auth()->id();
+        }
+        return $this->user_id === session()->getId();
+    }
+
+    /**
+     * Get the formatted time for this message
+     */
+    public function getFormattedTimeAttribute()
+    {
+        return $this->created_at->format('H:i');
+    }
 }
