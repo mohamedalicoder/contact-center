@@ -57,27 +57,6 @@
             return messageDiv;
         }
 
-        // Function to send message to server
-        async function sendMessage(message) {
-            const response = await fetch('/chat/bot', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                },
-                body: JSON.stringify({ message })
-            });
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'حدث خطأ في الاتصال');
-            }
-
-            return data;
-        }
-        
         // Handle form submission
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -87,22 +66,32 @@
             // Add user message
             appendMessage('user', message);
             messageInput.value = '';
-            
-            try {
-                // Show loading message
-                const loadingMessage = appendMessage('bot', 'جاري التفكير...');
-                
-                // Get response from bot
-                const data = await sendMessage(message);
-                
-                // Remove loading message
-                loadingMessage.remove();
-                
+
+            // Send message to server
+            fetch('/chat/bot/response', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('حدث خطأ في الاتصال');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
                 // Add bot response
                 appendMessage('bot', data.response);
-            } catch (error) {
+            })
+            .catch(error => {
                 appendMessage('error', error.message);
-            }
+            });
         });
     </script>
     @endpush

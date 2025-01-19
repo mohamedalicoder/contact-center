@@ -1,6 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const messageForm = document.getElementById('message-form');
-    const messageInput = document.getElementById('message-input');
     const messagesContainer = document.getElementById('chat-messages');
     
     // Initialize Pusher
@@ -16,8 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const channel = pusher.subscribe(`private-chat.${chatId}`);
             
             channel.bind('MessageSent', function(data) {
-                appendMessage(data.message);
-                scrollToBottom();
+                // Only append message if it's not from the current user
+                if (!data.message.is_sender) {
+                    appendMessage(data.message);
+                    scrollToBottom();
+                }
             });
 
             // Handle subscription error
@@ -30,14 +31,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Function to append a message to the chat
     function appendMessage(message) {
         const messageDiv = document.createElement('div');
-        const isSender = message.sender_type === 'agent';
+        const isSender = message.is_sender;
         
         messageDiv.className = `flex ${isSender ? 'justify-end' : 'justify-start'} mb-4`;
         
         messageDiv.innerHTML = `
-            <div class="${isSender ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-lg px-4 py-2 max-w-[70%]">
+            <div class="max-w-xs lg:max-w-md ${isSender ? 'bg-orange-500 text-white' : 'bg-gray-100'} rounded-lg px-4 py-2">
+                <div class="flex items-center mb-1">
+                    <span class="text-xs font-medium ${isSender ? 'text-orange-100' : 'text-gray-900'}">${message.user_name}</span>
+                </div>
                 <p class="text-sm">${message.content}</p>
-                <span class="text-xs ${isSender ? 'text-blue-100' : 'text-gray-400'}">${new Date(message.created_at).toLocaleTimeString()}</span>
+                <span class="text-xs ${isSender ? 'text-orange-100' : 'text-gray-500'} block mt-1">
+                    ${new Date(message.created_at).toLocaleTimeString()}
+                </span>
             </div>
         `;
         
@@ -50,40 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (messagesContainer) {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
-    }
-
-    // Handle message submission
-    if (messageForm) {
-        messageForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const message = messageInput.value.trim();
-            if (!message) return;
-
-            try {
-                const response = await fetch(`/chat/${window.currentChatId}/messages`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ message })
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    messageInput.value = '';
-                    messageInput.focus();
-                } else {
-                    throw new Error(data.message || 'Failed to send message');
-                }
-            } catch (error) {
-                console.error('Error sending message:', error);
-                alert('Failed to send message. Please try again.');
-            }
-        });
     }
 
     // Scroll to bottom on load

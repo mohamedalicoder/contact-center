@@ -49,15 +49,17 @@ class User extends Authenticatable
 
     public function hasRole($role)
     {
-        if (is_array($role)) {
-            return in_array($this->role, $role);
-        }
         return $this->role === $role;
     }
 
-    public static function getRoles()
+    public function isAgent()
     {
-        return ['admin', 'agent', 'user'];
+        return $this->role === 'agent';
+    }
+
+    public function isUser()
+    {
+        return $this->role === 'user';
     }
 
     /**
@@ -114,21 +116,5 @@ class User extends Authenticatable
     public function isAdmin()
     {
         return $this->role === 'admin';
-    }
-
-    /**
-     * Check if the user is an agent.
-     */
-    public function isAgent()
-    {
-        return $this->role === 'agent';
-    }
-
-    /**
-     * Check if the user is a user.
-     */
-    public function isUser()
-    {
-        return $this->role === 'user';
     }
 }

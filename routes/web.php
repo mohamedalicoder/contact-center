@@ -14,7 +14,7 @@ use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\QueueDashboardController;
 use App\Http\Controllers\SupportRequestController;
 use App\Http\Controllers\LiveChatController;
-use App\Http\Controllers\ChatBotController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
@@ -30,19 +30,22 @@ Route::prefix('chat')->name('chat.')->group(function () {
     Route::get('/contact', [ChatController::class, 'contactForm'])->name('contact');
     Route::post('/store', [ChatController::class, 'store'])->name('store');
     
+    // Chatbot Routes
+    Route::get('/bot', [ChatbotController::class, 'bot'])->name('bot');
+    Route::post('/bot', [ChatbotController::class, 'chat'])->name('bot.chat');
+    Route::post('/bot/response', [ChatbotController::class, 'response'])->name('bot.response');
+    
     // Routes that require authentication
     Route::middleware(['auth'])->group(function () {
         Route::get('/', [ChatController::class, 'index'])->name('index');
+        Route::get('/create', [ChatController::class, 'create'])->name('create');
         Route::get('/agent', [ChatController::class, 'agent'])->name('agent');
         Route::get('/{chat}', [ChatController::class, 'show'])->name('show');
         Route::post('/{chat}/messages', [ChatController::class, 'sendMessage'])->name('messages.store');
+        Route::post('/{chat}/messages/voice', [ChatController::class, 'storeVoiceMessage'])->name('messages.voice');
         Route::post('/{chat}/end', [ChatController::class, 'endChat'])->name('end');
     });
 });
-
-// Chatbot Routes
-Route::get('/chat/bot', [ChatBotController::class, 'bot'])->name('chatbot');
-Route::post('/chat/bot', [ChatBotController::class, 'chat'])->name('chatbot.chat');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -115,6 +118,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Queue Dashboard Routes
     Route::get('/queue-dashboard', [QueueDashboardController::class, 'index'])->name('queue.dashboard');
     Route::get('/queues/{queue}/details', [QueueDashboardController::class, 'queueDetails'])->name('queue.details');
+
+    Route::prefix('chat')->group(function () {
+        Route::get('/', [ChatController::class, 'index'])->name('chat.index');
+        Route::get('/agent', [ChatController::class, 'agent'])->name('chat.agent');
+        Route::get('/{chat}', [ChatController::class, 'show'])->name('chat.show');
+        Route::post('/{chat}/messages', [ChatController::class, 'sendMessage'])->name('chat.messages.store');
+        Route::post('/{chat}/messages/voice', [ChatController::class, 'storeVoiceMessage'])->name('chat.messages.voice');
+        Route::post('/{chat}/end', [ChatController::class, 'endChat'])->name('chat.end');
+    });
 });
 
 require __DIR__.'/auth.php';

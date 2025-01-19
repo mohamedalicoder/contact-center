@@ -16,6 +16,7 @@ class Message extends Model
         'type',
         'file_path',
         'sender_type',
+        'read'
     ];
 
     protected $with = ['user'];

@@ -7,8 +7,8 @@
                 <div class="overflow-hidden p-6 bg-white shadow-lg rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-105 border border-gray-100">
                     <div class="flex justify-between items-center">
                         <div>
-                            <p class="text-sm font-medium text-gray-500 mb-1">التذاكر النشطة</p>
-                            <p class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">{{ $stats['active_tickets'] }}</p>
+                            <p class="text-sm font-medium text-gray-500 mb-1">المحادثات النشطة</p>
+                            <p class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">{{ $stats['active_chats'] }}</p>
                         </div>
                         <div class="p-3 bg-gradient-to-br from-blue-100 to-blue-50 rounded-2xl">
                             <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,11 +22,11 @@
                 <div class="overflow-hidden p-6 bg-white shadow-lg rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-105 border border-gray-100">
                     <div class="flex justify-between items-center">
                         <div>
-                            <p class="text-sm font-medium text-gray-500 mb-1">مكالمات اليوم</p>
-                            <p class="text-4xl font-bold bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">{{ $stats['total_calls_today'] }}</p>
+                            <p class="text-sm font-medium text-gray-500 mb-1">محادثات اليوم</p>
+                            <p class="text-4xl font-bold bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">{{ $todayStats['total_chats'] }}</p>
                             <div class="mt-2 text-sm text-gray-500">
-                                <span class="text-green-600 font-medium">{{ $stats['inbound_calls_today'] }}</span> واردة،
-                                <span class="text-blue-600 font-medium">{{ $stats['outbound_calls_today'] }}</span> صادرة
+                                <span class="text-green-600 font-medium">{{ $todayStats['active_chats'] }}</span> نشط،
+                                <span class="text-blue-600 font-medium">{{ $todayStats['ended_chats'] }}</span> منتهي
                             </div>
                         </div>
                         <div class="p-3 bg-gradient-to-br from-green-100 to-green-50 rounded-2xl">
@@ -56,8 +56,8 @@
                 <div class="overflow-hidden p-6 bg-white shadow-lg rounded-xl transition-all duration-300 hover:shadow-xl hover:scale-105 border border-gray-100">
                     <div class="flex justify-between items-center">
                         <div>
-                            <p class="text-sm font-medium text-gray-500 mb-1">التذاكر المغلقة</p>
-                            <p class="text-4xl font-bold bg-gradient-to-r from-yellow-600 to-yellow-400 bg-clip-text text-transparent">{{ $stats['closed_tickets'] }}</p>
+                            <p class="text-sm font-medium text-gray-500 mb-1">المحادثات المنتهية</p>
+                            <p class="text-4xl font-bold bg-gradient-to-r from-yellow-600 to-yellow-400 bg-clip-text text-transparent">{{ $stats['ended_chats'] }}</p>
                         </div>
                         <div class="p-3 bg-gradient-to-br from-yellow-100 to-yellow-50 rounded-2xl">
                             <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,17 +72,17 @@
             <div class="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-2">
                 <!-- Call Volume Chart -->
                 <div class="overflow-hidden p-6 bg-white shadow-lg rounded-xl border border-gray-100">
-                    <h3 class="mb-6 text-xl font-bold text-gray-800">حجم المكالمات (آخر 7 أيام)</h3>
+                    <h3 class="mb-6 text-xl font-bold text-gray-800">حجم المحادثات (آخر 7 أيام)</h3>
                     <div class="h-64">
-                        <canvas id="callVolumeChart"></canvas>
+                        <canvas id="chatVolumeChart"></canvas>
                     </div>
                 </div>
 
                 <!-- Response Time Chart -->
                 <div class="overflow-hidden p-6 bg-white shadow-lg rounded-xl border border-gray-100">
-                    <h3 class="mb-6 text-xl font-bold text-gray-800">حالة التذاكر</h3>
+                    <h3 class="mb-6 text-xl font-bold text-gray-800">حالة المحادثات</h3>
                     <div class="h-64">
-                        <canvas id="responseTimeChart"></canvas>
+                        <canvas id="chatStatusChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -94,63 +94,27 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead>
                             <tr>
-                                <th class="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase bg-gray-50">النوع</th>
-                                <th class="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase bg-gray-50">الوصف</th>
+                                <th class="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase bg-gray-50">المستخدم</th>
                                 <th class="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase bg-gray-50">الموظف</th>
+                                <th class="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase bg-gray-50">اخر رسالة</th>
                                 <th class="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase bg-gray-50">الحالة</th>
-                                <th class="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase bg-gray-50">الوقت</th>
+                                <th class="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase bg-gray-50">التاريخ</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($recentCalls as $call)
+                            @foreach($recentChats as $chat)
                                 <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $chat->user->name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $chat->agent->name ?? '-' }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $chat->last_message->content ?? '-' }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="inline-flex px-2 text-xs font-semibold leading-5 {{ $call->type === 'inbound' ? 'text-green-800 bg-green-100' : 'text-blue-800 bg-blue-100' }} rounded-full">
-                                            {{ $call->type === 'inbound' ? 'وارد' : 'صادر' }}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            {{ $chat->status === 'active' ? 'bg-green-100 text-green-800' : 
+                                               ($chat->status === 'ended' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">
+                                            {{ $chat->status }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        {{ $call->contact ? $call->contact->name : 'غير معروف' }}
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        {{ $call->user ? $call->user->name : 'غير معين' }}
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="inline-flex px-2 text-xs font-semibold leading-5 {{ $call->status === 'completed' ? 'text-green-800 bg-green-100' : 'text-red-800 bg-red-100' }} rounded-full">
-                                            {{ $call->status === 'completed' ? 'مكتمل' : 'فائت' }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-500">
-                                        {{ $call->created_at->diffForHumans() }}
-                                    </td>
-                                </tr>
-                            @endforeach
-
-                            @foreach($recentTickets as $ticket)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="inline-flex px-2 text-xs font-semibold leading-5 text-purple-800 bg-purple-100 rounded-full">
-                                            تذكرة
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        {{ $ticket->contact ? $ticket->contact->name : 'غير معروف' }}
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        {{ $ticket->assignedTo ? $ticket->assignedTo->name : 'غير معين' }}
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="inline-flex px-2 text-xs font-semibold leading-5 
-                                            @if($ticket->status === 'open') text-green-800 bg-green-100 
-                                            @elseif($ticket->status === 'pending') text-yellow-800 bg-yellow-100
-                                            @else text-gray-800 bg-gray-100 
-                                            @endif rounded-full">
-                                            {{ $ticket->status === 'open' ? 'مفتوح' : ($ticket->status === 'pending' ? 'معلق' : 'مغلق') }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-500">
-                                        {{ $ticket->created_at->diffForHumans() }}
-                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $chat->created_at->format('Y-m-d H:i') }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -163,62 +127,71 @@
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Call Volume Chart
-        const callVolumeCtx = document.getElementById('callVolumeChart').getContext('2d');
-        new Chart(callVolumeCtx, {
-            type: 'line',
-            data: {
-                labels: {!! json_encode($lastSevenDays) !!},
-                datasets: [{
-                    label: 'المكالمات الواردة',
-                    data: {!! json_encode($inboundCallsData) !!},
-                    borderColor: 'rgb(59, 130, 246)',
-                    tension: 0.1
-                }, {
-                    label: 'المكالمات الصادرة',
-                    data: {!! json_encode($outboundCallsData) !!},
-                    borderColor: 'rgb(16, 185, 129)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
+        document.addEventListener('DOMContentLoaded', function() {
+            // Chat Volume Chart
+            const chatVolumeCtx = document.getElementById('chatVolumeChart').getContext('2d');
+            new Chart(chatVolumeCtx, {
+                type: 'line',
+                data: {
+                    labels: {!! json_encode($lastSevenDays) !!},
+                    datasets: [{
+                        label: 'محادثات نشطة',
+                        data: {!! json_encode($activeChatsData) !!},
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'محادثات منتهية',
+                        data: {!! json_encode($endedChatsData) !!},
+                        borderColor: 'rgb(239, 68, 68)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
 
-        // Tickets Status Chart
-        const ticketsCtx = document.getElementById('responseTimeChart').getContext('2d');
-        new Chart(ticketsCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['مفتوحة', 'معلقة', 'مغلقة'],
-                datasets: [{
-                    data: {!! json_encode($ticketsStatusData) !!},
-                    backgroundColor: [
-                        'rgb(59, 130, 246)',
-                        'rgb(245, 158, 11)',
-                        'rgb(16, 185, 129)'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
+            // Chat Status Chart
+            const chatStatusCtx = document.getElementById('chatStatusChart').getContext('2d');
+            new Chart(chatStatusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['نشط', 'منتهي', 'معلق'],
+                    datasets: [{
+                        data: {!! json_encode($chatStatusData) !!},
+                        backgroundColor: [
+                            'rgb(59, 130, 246)',
+                            'rgb(239, 68, 68)',
+                            'rgb(245, 158, 11)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
                     }
                 }
-            }
+            });
         });
     </script>
     @endpush
