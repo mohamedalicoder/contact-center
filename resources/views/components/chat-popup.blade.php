@@ -26,7 +26,7 @@
         <!-- Contact Options -->
         <div class="p-4 space-y-4">
             <!-- Contact Form -->
-            <a href="{{ route('chat.contact') }}" class="flex items-center p-3 rounded-lg transition-colors hover:bg-gray-50">
+            <a href="{{ route('contact.show') }}" class="flex items-center p-3 rounded-lg transition-colors hover:bg-gray-50">
                 <div class="p-3 bg-orange-500 rounded-full">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

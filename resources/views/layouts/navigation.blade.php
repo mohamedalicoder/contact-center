@@ -5,7 +5,7 @@
             <div class="flex">
                 <!-- Logo -->
                 <div class="flex items-center shrink-0">
-                    <a href="{{ route('dashboard') }}" class="flex items-center transition-transform duration-300 hover:scale-105">
+                    <a href="{{ route('landing') }}" class="flex items-center transition-transform duration-300 hover:scale-105">
                         <x-application-logo class="block w-auto h-9 text-gray-500 fill-current" />
                     </a>
                 </div>
@@ -26,7 +26,7 @@
                             (auth()->user()->role === 'admin' && in_array($item['name'], ['Contacts', 'Analytics'])) ||
                             $item['name'] === 'Dashboard'
                         )
-                            <a href="{{ route($item['route']) }}" 
+                            <a href="{{ route($item['route']) }}"
                                class="inline-flex items-center px-4 py-2 text-sm font-medium leading-5 text-gray-700 transition duration-300 rounded-md hover:bg-gray-100 {{ request()->routeIs($item['route'].'*') ? 'bg-gray-100' : '' }}">
                                 <svg class="mr-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     {!! $item['icon'] !!}
@@ -42,7 +42,7 @@
             <div class="hidden sm:flex sm:items-center sm:ml-6">
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 text-sm font-medium leading-4 text-gray-700 transition duration-300 rounded-md hover:bg-gray-100 focus:outline-none">
+                        <button class="inline-flex items-center px-3 py-2 text-sm font-medium leading-4 text-gray-700 rounded-md transition duration-300 hover:bg-gray-100 focus:outline-none">
                             <div>{{ Auth::user()->name }}</div>
                             <div class="ml-1">
                                 <svg class="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -104,7 +104,7 @@
                     (auth()->user()->role === 'admin' && in_array($item['name'], ['Contacts', 'Analytics'])) ||
                     $item['name'] === 'Dashboard'
                 )
-                    <a href="{{ route($item['route']) }}" 
+                    <a href="{{ route($item['route']) }}"
                        class="flex items-center px-4 py-2 text-base font-medium text-gray-700 transition duration-300 hover:bg-gray-100 {{ request()->routeIs($item['route'].'*') ? 'bg-gray-100' : '' }}">
                         <svg class="mr-3 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             {!! $item['icon'] !!}
@@ -123,7 +123,7 @@
             </div>
 
             <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')" 
+                <x-responsive-nav-link :href="route('profile.edit')"
                     class="flex items-center px-4 py-2 text-base font-medium text-gray-700 transition duration-300 hover:bg-gray-100">
                     <svg class="mr-3 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

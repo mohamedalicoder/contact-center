@@ -16,6 +16,7 @@ use App\Http\Controllers\SupportRequestController;
 use App\Http\Controllers\LiveChatController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ContactFormController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -23,6 +24,10 @@ use Illuminate\Support\Facades\Broadcast;
 Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 Route::get('/', [LandingController::class, 'index'])->name('landing');
+
+// Contact Form Routes
+Route::get('/contact', [ContactFormController::class, 'show'])->name('contact.show');
+Route::post('/contact/send', [ContactFormController::class, 'sendEmail'])->name('contact.send');
 
 // Chat Routes
 Route::prefix('chat')->name('chat.')->group(function () {

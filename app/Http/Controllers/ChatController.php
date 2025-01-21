@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ContactFormSubmitted;
 use Illuminate\Validation\ValidationException;
 
 class ChatController extends Controller
@@ -58,7 +60,7 @@ class ChatController extends Controller
                         'unread_messages' => $chat->messages()
                             ->where('read', false)
                             ->when($user->isAgent(), function($query) {
-                                return $query->where('user_id', '!=', auth()->id());
+                                return $query->where('user_id', '!=', Auth::id());
                             })
                             ->when($user->isUser(), function($query) use ($user) {
                                 return $query->where('user_id', '!=', $user->id);
@@ -104,11 +106,11 @@ class ChatController extends Controller
     public function create()
     {
         $user = Auth::user();
-        
+
         // Create a new chat
         $chat = new Chat();
         $chat->user_id = $user->id;
-        
+
         // If user is not an agent, find an available agent
         if (!$user->isAgent()) {
             $agent = User::where('role', 'agent')
@@ -116,12 +118,12 @@ class ChatController extends Controller
                             $query->where('status', 'active');
                         })
                         ->first();
-            
+
             if ($agent) {
                 $chat->agent_id = $agent->id;
             }
         }
-        
+
         $chat->status = 'active';
         $chat->save();
 
@@ -143,99 +145,74 @@ class ChatController extends Controller
         try {
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
-                'email' => 'required|email|max:255',
+                'email' => 'required|email',
                 'message' => 'required|string'
             ]);
 
-            // Find or create user
+            // Create a new user or get existing one
             $user = User::firstOrCreate(
                 ['email' => $validated['email']],
                 [
                     'name' => $validated['name'],
-                    'password' => bcrypt(Str::random(16)),
+                    'password' => Hash::make(Str::random(16)),
                     'role' => 'user'
                 ]
             );
 
-            // Find available agent
-            $agent = User::where('role', 'agent')
-                ->whereDoesntHave('agentChats', function($query) {
-                    $query->where('status', 'active');
-                })
-                ->inRandomOrder()
-                ->first();
-
-            if (!$agent) {
-                $agent = User::where('role', 'agent')
-                    ->withCount(['agentChats' => function($query) {
-                        $query->where('status', 'active');
-                    }])
-                    ->orderBy('agent_chats_count')
-                    ->first();
-            }
-
-            if (!$agent) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No agents available at the moment'
-                ], 503);
-            }
-
-            DB::beginTransaction();
-
-            // Create chat
+            // Create the chat
             $chat = Chat::create([
                 'user_id' => $user->id,
-                'agent_id' => $agent->id,
-                'status' => 'active',
-                'started_at' => now(),
+                'status' => 'open'
             ]);
 
-            // Create first message
-            $message = Message::create([
+            // Create the first message
+            Message::create([
                 'chat_id' => $chat->id,
                 'user_id' => $user->id,
                 'content' => $validated['message'],
                 'type' => 'text'
             ]);
 
+            // Send notification email
+            Mail::to(config('mail.admin_address', 'admin@example.com'))->send(
+                new ContactFormSubmitted(
+                    $validated['name'],
+                    $validated['email'],
+                    $validated['message']
+                )
+            );
+
             // Broadcast new chat event
             broadcast(new NewChatStarted($chat))->toOthers();
-
-            DB::commit();
 
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
-                    'chat' => $chat->load('agent', 'messages'),
-                    'message' => 'Chat started successfully'
+                    'chat' => $chat
                 ]);
             }
 
-            return redirect()->route('chat.show', $chat->id)
-                ->with('success', 'Chat started successfully');
+            return redirect()->route('chat.show', $chat);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'messages' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
-            DB::rollBack();
-
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to start chat: ' . $e->getMessage()
-                ], 500);
-            }
-
-            return back()
-                ->withInput()
-                ->withErrors(['error' => 'Failed to start chat: ' . $e->getMessage()]);
+            \Log::error('Error in ChatController@store: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to create chat',
+                'message' => config('app.debug') ? $e->getMessage() : 'An error occurred while creating the chat'
+            ], 500);
         }
     }
 
     public function show(Chat $chat)
     {
         try {
-            $user = auth()->user();
-            
+            $user = Auth::user();
+
             if (!$user) {
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
@@ -244,7 +221,7 @@ class ChatController extends Controller
             if ($user->isAgent() && $chat->agent_id !== $user->id) {
                 return response()->json(['error' => 'You do not have access to this chat'], 403);
             }
-            
+
             if ($user->isUser() && $chat->user_id !== $user->id) {
                 return response()->json(['error' => 'You do not have access to this chat'], 403);
             }
@@ -278,7 +255,7 @@ class ChatController extends Controller
                         'user_id' => $message->user_id,
                         'user_name' => $message->user ? $message->user->name : 'Unknown User',
                         'created_at' => $message->created_at,
-                        'is_sender' => $message->user_id === auth()->id()
+                        'is_sender' => $message->user_id === Auth::id()
                     ];
                 })
             ];
@@ -300,8 +277,8 @@ class ChatController extends Controller
     public function showJson(Chat $chat)
     {
         // Check access
-        if (auth()->check()) {
-            if (auth()->id() !== $chat->user_id && auth()->id() !== $chat->agent_id) {
+        if (Auth::check()) {
+            if (Auth::id() !== $chat->user_id && Auth::id() !== $chat->agent_id) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
         } else {
@@ -336,8 +313,8 @@ class ChatController extends Controller
     public function sendMessage(Request $request, Chat $chat)
     {
         try {
-            $user = auth()->user();
-            
+            $user = Auth::user();
+
             if (!$user) {
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
@@ -346,7 +323,7 @@ class ChatController extends Controller
             if ($user->isAgent() && $chat->agent_id !== $user->id) {
                 return response()->json(['error' => 'You do not have access to this chat'], 403);
             }
-            
+
             if ($user->isUser() && $chat->user_id !== $user->id) {
                 return response()->json(['error' => 'You do not have access to this chat'], 403);
             }
@@ -390,7 +367,7 @@ class ChatController extends Controller
             ];
 
             // Broadcast the message
-            broadcast(new MessageSent($chat, $formattedMessage))->toOthers();
+            broadcast(new MessageSent($chat, $message))->toOthers();
 
             DB::commit();
 
@@ -407,7 +384,7 @@ class ChatController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error in ChatController@sendMessage: ' . $e->getMessage());
-            
+
             return response()->json([
                 'error' => 'Failed to send message',
                 'message' => config('app.debug') ? $e->getMessage() : 'An error occurred while sending the message'
@@ -427,7 +404,7 @@ class ChatController extends Controller
         try {
             // Log request information
             \Log::info('Voice message request', [
-                'user_id' => auth()->id(),
+                'user_id' => Auth::check() ? Auth::id() : null,
                 'chat_id' => $chat->id,
                 'chat_agent_id' => $chat->agent_id,
                 'chat_customer_id' => $chat->customer_id,
@@ -435,7 +412,7 @@ class ChatController extends Controller
             ]);
 
             // Basic authentication check
-            if (!auth()->check()) {
+            if (!Auth::check()) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'يجب تسجيل الدخول أولاً.'
@@ -471,16 +448,16 @@ class ChatController extends Controller
                 'type.required' => 'نوع الرسالة مطلوب.',
                 'type.in' => 'نوع الرسالة غير صالح.'
             ]);
-            
+
             DB::beginTransaction();
 
             // Store the audio file
             $path = $request->file('audio')->store('voice-messages/' . date('Y/m'), 'public');
-            
+
             // Create message record
             $message = Message::create([
                 'chat_id' => $chat->id,
-                'user_id' => auth()->id(),
+                'user_id' => Auth::check() ? Auth::id() : null,
                 'content' => asset('storage/' . $path),
                 'type' => 'voice',
                 'metadata' => [
@@ -499,7 +476,7 @@ class ChatController extends Controller
             DB::commit();
 
             // Broadcast the message
-            broadcast(new MessageSent($message))->toOthers();
+            broadcast(new MessageSent($chat, $message))->toOthers();
 
             return response()->json([
                 'status' => 'success',
@@ -516,10 +493,10 @@ class ChatController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             \Log::error('Voice message error: ' . $e->getMessage(), [
-                'user_id' => auth()->id(),
-                'chat_id' => $chat->id,
+                'user_id' => Auth::check() ? Auth::id() : null,
+                'chat_id' => $chat->id ?? null,
                 'file' => $request->hasFile('audio') ? $request->file('audio')->getClientOriginalName() : null
             ]);
 
@@ -532,17 +509,40 @@ class ChatController extends Controller
 
     public function endChat(Chat $chat)
     {
-        if ($chat->agent_id !== Auth::id()) {
-            abort(403);
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            // Check if user has access to this chat
+            if ($user->isAgent() && $chat->agent_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this chat'
+                ], 403);
+            }
+
+            $chat->update([
+                'status' => 'ended',
+                'ended_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Chat ended successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in ChatController@endChat: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to end chat'
+            ], 500);
         }
-
-        $chat->update([
-            'status' => 'ended',
-            'ended_at' => now(),
-        ]);
-
-        return redirect()->route('chat.index')
-            ->with('success', 'Chat ended successfully.');
     }
 
     public function contactForm()

@@ -7,14 +7,14 @@
                 <div class="w-80 bg-white border-r border-gray-100">
                     <div class="flex flex-col h-full">
                         <!-- Search and Status -->
-                        <div class="p-4 border-b border-gray-100 bg-white">
+                        <div class="p-4 bg-white border-b border-gray-100">
                             <div class="flex justify-between items-center mb-4">
                                 <h2 class="text-xl font-semibold text-gray-800">Active Chats</h2>
                                 <span class="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-50 rounded-full shadow-sm" id="active-chats-count">0</span>
                             </div>
                             <div class="relative">
                                 <input type="text" placeholder="Search conversations..."
-                                    class="py-2.5 pr-4 pl-10 w-full rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150">
+                                    class="py-2.5 pr-4 pl-10 w-full rounded-xl border border-gray-200 transition duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                 <div class="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none">
                                     <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -45,7 +45,7 @@
                         <!-- Chat Header -->
                         <div class="flex justify-between items-center px-6 py-4 bg-white border-b border-gray-100 shadow-sm">
                             <div class="flex items-center space-x-4">
-                                <div class="flex justify-center items-center w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full text-white shadow-md">
+                                <div class="flex justify-center items-center w-12 h-12 text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-full shadow-md">
                                     <span id="chat-user-initial" class="text-lg font-medium"></span>
                                 </div>
                                 <div>
@@ -54,7 +54,7 @@
                                 </div>
                             </div>
                             <div class="flex items-center space-x-2">
-                                <button id="end-chat-btn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition duration-150">
+                                <button id="end-chat-btn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg transition duration-150 hover:bg-red-100">
                                     <svg class="mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                     </svg>
@@ -77,15 +77,15 @@
                                         id="message-input"
                                         name="message"
                                         rows="1"
-                                        class="block w-full rounded-xl border-gray-200 shadow-sm resize-none focus:border-blue-500 focus:ring-blue-500 transition duration-150"
+                                        class="block w-full rounded-xl border-gray-200 shadow-sm transition duration-150 resize-none focus:border-blue-500 focus:ring-blue-500"
                                         placeholder="Type your message..."
                                     ></textarea>
                                 </div>
                                 <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                    <button id="sendMessageBtn" type="submit" class="px-6 py-2.5 text-white bg-blue-600 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 shadow-sm">
+                                    <button id="sendMessageBtn" type="submit" class="px-6 py-2.5 text-white bg-blue-600 rounded-xl shadow-sm transition duration-150 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                                         إرسال
                                     </button>
-                                    <button type="button" id="voiceMessageBtn" class="p-2.5 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150">
+                                    <button type="button" id="voiceMessageBtn" class="p-2.5 text-gray-600 bg-gray-100 rounded-xl transition duration-150 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                                         </svg>
@@ -596,30 +596,30 @@
         // Handle end chat button
         document.getElementById('end-chat-btn').addEventListener('click', async () => {
             if (!currentChatId) {
+
                 return;
             }
 
             if (!confirm('Are you sure you want to end this chat?')) {
+        
                 return;
             }
 
             try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
                 const response = await fetch(`/chat/${currentChatId}/end`, {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
                     }
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
                 const data = await response.json();
 
-                if (!data.success) {
-                    throw new Error(data.message || 'Failed to end chat');
+                if (!response.ok) {
+                    throw new Error(data.message || `HTTP error! status: ${response.status}`);
                 }
 
                 // Reset chat area
@@ -630,9 +630,12 @@
 
                 // Reload chat list
                 loadActiveChats();
+
+                // Show success message
+                alert('Chat ended successfully');
             } catch (error) {
                 console.error('Error ending chat:', error);
-                alert('Failed to end chat. Please try again.');
+                alert(error.message || 'Failed to end chat. Please try again.');
             }
         });
 
