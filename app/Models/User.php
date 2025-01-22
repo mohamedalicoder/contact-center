@@ -52,6 +52,16 @@ class User extends Authenticatable
         return $this->role === $role;
     }
 
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isSupervisor()
+    {
+        return $this->role === 'supervisor';
+    }
+
     public function isAgent()
     {
         return $this->role === 'agent';
@@ -60,6 +70,11 @@ class User extends Authenticatable
     public function isUser()
     {
         return $this->role === 'user';
+    }
+
+    public function canViewAllChats()
+    {
+        return in_array($this->role, ['admin', 'supervisor']);
     }
 
     /**
@@ -108,13 +123,5 @@ class User extends Authenticatable
     public function activeAgentChats()
     {
         return $this->agentChats()->where('status', 'active');
-    }
-
-    /**
-     * Check if the user is an admin.
-     */
-    public function isAdmin()
-    {
-        return $this->role === 'admin';
     }
 }

@@ -17,6 +17,7 @@ use App\Http\Controllers\LiveChatController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ContactFormController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -34,12 +35,12 @@ Route::prefix('chat')->name('chat.')->group(function () {
     // Public routes
     Route::get('/contact', [ChatController::class, 'contactForm'])->name('contact');
     Route::post('/store', [ChatController::class, 'store'])->name('store');
-    
+
     // Chatbot Routes
     Route::get('/bot', [ChatbotController::class, 'bot'])->name('bot');
     Route::post('/bot', [ChatbotController::class, 'chat'])->name('bot.chat');
     Route::post('/bot/response', [ChatbotController::class, 'response'])->name('bot.response');
-    
+
     // Routes that require authentication
     Route::middleware(['auth'])->group(function () {
         Route::get('/', [ChatController::class, 'index'])->name('index');
@@ -49,11 +50,15 @@ Route::prefix('chat')->name('chat.')->group(function () {
         Route::post('/{chat}/messages', [ChatController::class, 'sendMessage'])->name('messages.store');
         Route::post('/{chat}/messages/voice', [ChatController::class, 'storeVoiceMessage'])->name('messages.voice');
         Route::post('/{chat}/end', [ChatController::class, 'endChat'])->name('end');
+        Route::get('/available-agents', [ChatController::class, 'getAvailableAgents'])->name('available-agents');
+        Route::post('/start-chat', [ChatController::class, 'startNewChat'])->name('start');
     });
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+     // controle users from admin
+     Route::resource('users', UserController::class);
 
     // Live Chat Routes
     Route::prefix('livechat')->group(function () {

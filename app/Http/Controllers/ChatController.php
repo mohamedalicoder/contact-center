@@ -34,14 +34,21 @@ class ChatController extends Controller
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
 
-            $chats = Chat::with(['user', 'agent', 'lastMessage'])
-                ->when($user->isAgent(), function($query) use ($user) {
-                    return $query->where('agent_id', $user->id);
-                })
-                ->when($user->isUser(), function($query) use ($user) {
-                    return $query->where('user_id', $user->id);
-                })
-                ->orderByDesc(function ($query) {
+            $query = Chat::with(['user', 'agent', 'lastMessage']);
+
+            // Filter chats based on user role
+            if (!$user->canViewAllChats()) {
+                if ($user->isUser()) {
+                    // Regular users can only see their own chats
+                    $query->where('user_id', $user->id);
+                } elseif ($user->isAgent()) {
+                    // Agents can only see chats assigned to them
+                    $query->where('agent_id', $user->id);
+                }
+            }
+            // Admin and supervisor can see all chats (no filter needed)
+
+            $chats = $query->orderByDesc(function ($query) {
                     $query->select('created_at')
                         ->from('messages')
                         ->whereColumn('chat_id', 'chats.id')
@@ -210,68 +217,50 @@ class ChatController extends Controller
 
     public function show(Chat $chat)
     {
-        try {
-            $user = Auth::user();
+        $user = Auth::user();
 
-            if (!$user) {
-                return response()->json(['error' => 'Unauthorized'], 401);
-            }
+        // Check if user has permission to view this chat
+        if (!$user->canViewAllChats() &&
+            !($user->isAgent() && $chat->agent_id === $user->id) &&
+            !($user->isUser() && $chat->user_id === $user->id)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Unauthorized access to this chat.'
+            ], 403);
+        }
 
-            // Check if user has access to this chat
-            if ($user->isAgent() && $chat->agent_id !== $user->id) {
-                return response()->json(['error' => 'You do not have access to this chat'], 403);
-            }
+        $chat->load(['messages', 'user', 'agent']);
 
-            if ($user->isUser() && $chat->user_id !== $user->id) {
-                return response()->json(['error' => 'You do not have access to this chat'], 403);
-            }
-
-            // Load relationships
-            $chat->load(['messages' => function($query) {
-                $query->with('user')->orderBy('created_at', 'asc');
-            }, 'user', 'agent']);
-
-            // Mark messages as read
-            $chat->messages()
-                ->where('read', false)
-                ->when($user->isAgent(), function($query) use ($user) {
-                    return $query->where('user_id', '!=', $user->id);
-                })
-                ->when($user->isUser(), function($query) use ($user) {
-                    return $query->where('user_id', '!=', $user->id);
-                })
-                ->update(['read' => true]);
-
-            // Format the response
-            $formattedChat = [
-                'id' => $chat->id,
-                'status' => $chat->status,
-                'user_name' => $chat->user ? $chat->user->name : 'Unknown User',
-                'agent_name' => $chat->agent ? $chat->agent->name : null,
-                'messages' => $chat->messages->map(function($message) {
-                    return [
-                        'id' => $message->id,
-                        'content' => $message->content,
-                        'user_id' => $message->user_id,
-                        'user_name' => $message->user ? $message->user->name : 'Unknown User',
-                        'created_at' => $message->created_at,
-                        'is_sender' => $message->user_id === Auth::id()
-                    ];
-                })
-            ];
-
+        // Return JSON if requested
+        if (request()->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'chat' => $formattedChat
+                'chat' => [
+                    'id' => $chat->id,
+                    'status' => $chat->status,
+                    'user' => [
+                        'id' => $chat->user->id,
+                        'name' => $chat->user->name
+                    ],
+                    'agent' => $chat->agent ? [
+                        'id' => $chat->agent->id,
+                        'name' => $chat->agent->name
+                    ] : null,
+                    'messages' => $chat->messages->map(function($message) use ($user) {
+                        return [
+                            'id' => $message->id,
+                            'content' => $message->content,
+                            'user_id' => $message->user_id,
+                            'created_at' => $message->created_at,
+                            'is_sender' => $message->user_id === $user->id
+                        ];
+                    })
+                ]
             ]);
-
-        } catch (\Exception $e) {
-            \Log::error('Error in ChatController@show: ' . $e->getMessage());
-            return response()->json([
-                'error' => 'Failed to load chat',
-                'message' => config('app.debug') ? $e->getMessage() : 'An error occurred while loading the chat'
-            ], 500);
         }
+
+        // Return view for regular requests
+        return view('chat.show', compact('chat'));
     }
 
     public function showJson(Chat $chat)
@@ -315,90 +304,59 @@ class ChatController extends Controller
         try {
             $user = Auth::user();
 
-            if (!$user) {
-                return response()->json(['error' => 'Unauthorized'], 401);
-            }
-
-            // Check if user has access to this chat
-            if ($user->isAgent() && $chat->agent_id !== $user->id) {
-                return response()->json(['error' => 'You do not have access to this chat'], 403);
-            }
-
-            if ($user->isUser() && $chat->user_id !== $user->id) {
-                return response()->json(['error' => 'You do not have access to this chat'], 403);
-            }
-
-            // Validate request
-            $validated = $request->validate([
-                'content' => 'required|string|max:1000'
-            ]);
-
-            // Check if chat is active
-            if ($chat->status !== 'active') {
+            if (!$this->canAccessChat($chat)) {
                 return response()->json([
-                    'error' => 'This chat has ended'
+                    'success' => false,
+                    'error' => 'Unauthorized access to this chat.'
                 ], 403);
             }
 
-            DB::beginTransaction();
-
-            // Create the message
-            $message = new Message([
-                'chat_id' => $chat->id,
-                'user_id' => $user->id,
-                'content' => $validated['content'],
-                'type' => 'text',
-                'read' => false
+            // Validate request
+            $request->validate([
+                'content' => 'required|string|max:1000',
             ]);
 
-            $message->save();
+            // Create message
+            $message = Message::create([
+                'chat_id' => $chat->id,
+                'content' => $request->input('content'),
+                'user_id' => $user->id,
+                'type' => 'text'
+            ]);
 
             // Load the user relationship
             $message->load('user');
 
-            // Format the message response
-            $formattedMessage = [
+            // Format message for response and broadcast
+            $messageData = [
                 'id' => $message->id,
                 'content' => $message->content,
                 'user_id' => $message->user_id,
-                'user_name' => $message->user->name,
                 'created_at' => $message->created_at,
-                'is_sender' => true
+                'is_sender' => false,
+                'chat_id' => $chat->id
             ];
 
-            // Broadcast the message
-            broadcast(new MessageSent($chat, $message))->toOthers();
+            // Broadcast to others
+            broadcast(new MessageSent($messageData, $chat->id))->toOthers();
 
-            DB::commit();
-
+            // Return with is_sender true for the sender
+            $messageData['is_sender'] = true;
+            
             return response()->json([
                 'success' => true,
-                'message' => $formattedMessage
+                'message' => $messageData
             ]);
 
-        } catch (ValidationException $e) {
-            return response()->json([
-                'error' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error in ChatController@sendMessage: ' . $e->getMessage());
-
+            \Log::error('Message sending error: ' . $e->getMessage());
             return response()->json([
-                'error' => 'Failed to send message',
-                'message' => config('app.debug') ? $e->getMessage() : 'An error occurred while sending the message'
+                'success' => false,
+                'error' => 'Failed to send message: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    /**
-     * Store a voice message in the chat.
-     *
-     * @param Request $request
-     * @param Chat $chat
-     * @return JsonResponse
-     */
     public function storeVoiceMessage(Request $request, Chat $chat)
     {
         try {
@@ -553,20 +511,26 @@ class ChatController extends Controller
     public function agent()
     {
         $user = Auth::user();
-        // For non-authenticated users, show the chat interface
-        if (!$user) {
-            return view('chat.contact-form');
+
+        // Get chats based on user role
+        $query = Chat::with(['user', 'agent', 'messages'])
+            ->orderBy('created_at', 'desc');
+
+        // Filter chats based on user role
+        if (!$user->canViewAllChats()) {
+            if ($user->isAgent()) {
+                $query->where('agent_id', $user->id);
+            } elseif ($user->isUser()) {
+                $query->where('user_id', $user->id);
+            }
         }
 
-        // For agents, show the agent dashboard
-        if ($user->isAgent()) {
-            return view('chat.agent', [
-                'user' => $user
-            ]);
-        }
+        $chats = $query->get();
 
-        // For regular users, show the chat interface
-        return view('chat.agent');
+        return view('chat.agent', [
+            'chats' => $chats,
+            'user' => $user
+        ]);
     }
 
     public function bot()
@@ -574,4 +538,82 @@ class ChatController extends Controller
         return view('chat.bot');
     }
 
+    public function getAvailableAgents()
+    {
+        $availableAgents = User::where('role', 'agent')
+            ->where('is_available', true)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'agents' => $availableAgents
+        ]);
+    }
+
+    public function startNewChat(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Find an available agent
+            $agent = User::where('role', 'agent')
+                ->where('is_available', true)
+                ->first();
+
+            if (!$agent) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No agents available at the moment'
+                ], 404);
+            }
+
+            // Create new chat
+            $chat = Chat::create([
+                'user_id' => $user->id,
+                'agent_id' => $agent->id,
+                'status' => 'active',
+                'started_at' => now(),
+            ]);
+
+            // Load relationships
+            $chat->load(['user', 'agent']);
+
+            // Mark agent as busy
+            $agent->update(['is_available' => false]);
+
+            // Broadcast new chat event
+            broadcast(new NewChatStarted($chat))->toOthers();
+
+            return response()->json([
+                'success' => true,
+                'chat' => $chat
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to start chat'
+            ], 500);
+        }
+    }
+
+    private function canAccessChat(Chat $chat)
+    {
+        $user = Auth::user();
+
+        if (!$user->canViewAllChats() &&
+            !($user->isAgent() && $chat->agent_id === $user->id) &&
+            !($user->isUser() && $chat->user_id === $user->id)) {
+            return false;
+        }
+
+        return true;
+    }
 }

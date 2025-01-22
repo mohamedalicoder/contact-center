@@ -24,15 +24,23 @@
                                         <div class="flex justify-between items-center">
                                             <div>
                                                 <h3 class="font-medium">
-                                                    @if(auth()->user()->isAdmin())
-                                                        Chat with {{ $chat->user->name ?? 'Unknown User' }}
+                                                    @if(auth()->user()->canViewAllChats())
+                                                        Chat #{{ $chat->id }} - {{ $chat->user->name ?? 'Unknown User' }} with {{ $chat->agent->name ?? 'Unassigned' }}
                                                     @elseif(auth()->user()->isAgent())
                                                         Chat with {{ $chat->user->name ?? 'Unknown User' }}
                                                     @else
-                                                        Chat with {{ $chat->agent->name ?? 'Support Agent' }}
+                                                        Chat with Support
+                                                        @if($chat->agent)
+                                                            ({{ $chat->agent->name }})
+                                                        @endif
                                                     @endif
                                                 </h3>
-                                                <p class="text-sm text-gray-500">{{ $chat->messages->last()?->content ?? 'No messages yet' }}</p>
+                                                <p class="text-sm text-gray-500">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $chat->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                                        {{ ucfirst($chat->status) }}
+                                                    </span>
+                                                    <span class="ml-2">{{ $chat->messages->last()?->content ?? 'No messages yet' }}</span>
+                                                </p>
                                             </div>
                                             <div class="text-xs text-gray-400">
                                                 {{ $chat->updated_at->diffForHumans() }}

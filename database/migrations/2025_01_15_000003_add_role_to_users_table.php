@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             if (!Schema::hasColumn('users', 'role')) {
-                $table->enum('role', ['user', 'admin', 'agent'])->default('user')->after('password');
+                $table->enum('role', ['user', 'admin', 'agent', 'supervisor'])->default('user')->after('password');
             }
             if (!Schema::hasColumn('users', 'deleted_at')) {
                 $table->softDeletes();

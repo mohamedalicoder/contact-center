@@ -19,11 +19,13 @@
                         ['name' => 'Calls', 'route' => 'calls.index', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>'],
                         ['name' => 'Tickets', 'route' => 'tickets.index', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>'],
                         ['name' => 'Contacts', 'route' => 'contacts.index', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>'],
-                        ['name' => 'Analytics', 'route' => 'analytics.index', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>']
+                        ['name' => 'Analytics', 'route' => 'analytics.index', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>'],
+                        ['name' => 'Users', 'route' => 'users.index', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>']
+
                     ] as $item)
                         @if(
-                            (in_array(auth()->user()->role, ['admin', 'supervisor', 'agent']) && in_array($item['name'], ['Dashboard', 'Chat', 'Support Requests', 'Calls', 'Tickets'])) ||
-                            (auth()->user()->role === 'admin' && in_array($item['name'], ['Contacts', 'Analytics'])) ||
+                            (in_array(auth()->user()->role, ['admin', 'supervisor', 'agent',"user"]) && in_array($item['name'], ['Dashboard', 'Chat', 'Support Requests', 'Calls', 'Tickets'])) ||
+                            (auth()->user()->role === 'admin' && in_array($item['name'], ['Contacts', 'Analytics', 'Users'])) ||
                             $item['name'] === 'Dashboard'
                         )
                             <a href="{{ route($item['route']) }}"
@@ -97,11 +99,13 @@
                 ['name' => 'Calls', 'route' => 'calls.index', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>'],
                 ['name' => 'Tickets', 'route' => 'tickets.index', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>'],
                 ['name' => 'Contacts', 'route' => 'contacts.index', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>'],
-                ['name' => 'Analytics', 'route' => 'analytics.index', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>']
+                ['name' => 'Analytics', 'route' => 'analytics.index', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>'],
+                ['name' => 'Users', 'route' => 'users.index', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>']
+
             ] as $item)
                 @if(
-                    (in_array(auth()->user()->role, ['admin', 'supervisor', 'agent']) && in_array($item['name'], ['Dashboard', 'Chat', 'Support Requests', 'Calls', 'Tickets'])) ||
-                    (auth()->user()->role === 'admin' && in_array($item['name'], ['Contacts', 'Analytics'])) ||
+                    (in_array(auth()->user()->role, ['admin', 'supervisor', 'agent',"user"]) && in_array($item['name'], ['Dashboard', 'Chat', 'Support Requests', 'Calls', 'Tickets'])) ||
+                    (auth()->user()->role === 'admin' && in_array($item['name'], ['Contacts', 'Analytics', 'Users'])) ||
                     $item['name'] === 'Dashboard'
                 )
                     <a href="{{ route($item['route']) }}"

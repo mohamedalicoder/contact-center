@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Auth;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -11,12 +12,10 @@ class Message extends Model
 
     protected $fillable = [
         'chat_id',
-        'user_id',
         'content',
+        'user_id',
         'type',
-        'file_path',
-        'sender_type',
-        'read'
+        'file_path'
     ];
 
     protected $with = ['user'];
@@ -30,7 +29,7 @@ class Message extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function getSenderTypeAttribute()
@@ -46,8 +45,8 @@ class Message extends Model
      */
     public function getIsSenderAttribute()
     {
-        if (auth()->check()) {
-            return $this->user_id === auth()->id();
+        if (Auth::check()) {
+            return $this->user_id === Auth::id();
         }
         return $this->user_id === session()->getId();
     }
